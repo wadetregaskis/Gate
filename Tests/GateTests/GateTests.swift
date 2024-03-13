@@ -131,31 +131,34 @@ final class GateTests: XCTestCase {
         }
     }
 
-    func testClosedGateEnteredByAlreadyCancelledTask() throws {
-        let gate = Gate(initiallyOpen: false)
+    func testGateEnteredByAlreadyCancelledTask() throws {
+        for initialState in [true, false] {
+            let gate = Gate(initiallyOpen: initialState)
 
-        let passedThroughExpectation = XCTestExpectation(description: "Task should not have passed through the gate.")
-        passedThroughExpectation.isInverted = true
+            let passedThroughExpectation = XCTestExpectation(description: "Task should not have passed through the gate.")
+            passedThroughExpectation.isInverted = true
 
-        let cancelledExpectation = XCTestExpectation(description: "Task should have been cancelled.")
+            let cancelledExpectation = XCTestExpectation(description: "Task should have been cancelled.")
 
-        Task {
-            withUnsafeCurrentTask {
-                $0!.cancel()
+            Task {
+                withUnsafeCurrentTask {
+                    $0!.cancel()
+                }
+
+                do {
+                    try await gate.enter()
+                } catch is CancellationError {
+                    cancelledExpectation.fulfill()
+                    return
+                }
+
+                passedThroughExpectation.fulfill()
             }
 
-            do {
-                try await gate.enter()
-            } catch is CancellationError {
-                cancelledExpectation.fulfill()
-                return
-            }
+            wait(for: [cancelledExpectation, passedThroughExpectation], timeout: 1.0)
 
-            passedThroughExpectation.fulfill()
+            gate.open() // Just to ensure that opening or closing the gate afterwards doesn't somehow crash.
+            gate.close()
         }
-
-        wait(for: [cancelledExpectation, passedThroughExpectation], timeout: 1.0)
-
-        gate.open() // Just to ensure that opening the gate afterwards doesn't somehow crash.
     }
 }
