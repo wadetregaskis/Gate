@@ -1,6 +1,6 @@
 //  Created by Wade Tregaskis on 2024-03-05.
 
-import Foundation // For NSRecursiveLock.  TODO: remove this dependency on Foundation.
+import Foundation // For NSRecursiveLock.  TODO: remove this dependency on Foundation (extract the `NSRecursiveLock` implementation into a standalone package?).
 
 /// Controls execution of async task(s) like a gate that can be opened or closed, with tasks having to wait to enter while it's closed.
 ///
