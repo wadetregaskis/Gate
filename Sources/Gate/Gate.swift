@@ -56,7 +56,7 @@ public final class Gate: @unchecked Sendable {
     }
 
     /// Enter through the gate, waiting for it to open first as necessary.
-    /// - Throws: ``CancellationError`` if the task is cancelled while waiting to enter the gate.
+    /// - Throws: ``CancellationError`` if the task is cancelled at the time it tries to enter the gate, or while waiting to enter the gate.
     public func enter() async throws {
         try Task.checkCancellation()
 
