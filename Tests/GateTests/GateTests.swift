@@ -130,4 +130,32 @@ final class GateTests: XCTestCase {
             try doCancellationTest(concurrency: i, detachedTasks: true)
         }
     }
+
+    func testClosedGateEnteredByAlreadyCancelledTask() throws {
+        let gate = Gate(initiallyOpen: false)
+
+        let passedThroughExpectation = XCTestExpectation(description: "Task should not have passed through the gate.")
+        passedThroughExpectation.isInverted = true
+
+        let cancelledExpectation = XCTestExpectation(description: "Task should have been cancelled.")
+
+        Task {
+            withUnsafeCurrentTask {
+                $0!.cancel()
+            }
+
+            do {
+                try await gate.enter()
+            } catch is CancellationError {
+                cancelledExpectation.fulfill()
+                return
+            }
+
+            passedThroughExpectation.fulfill()
+        }
+
+        wait(for: [cancelledExpectation, passedThroughExpectation], timeout: 1.0)
+
+        gate.open() // Just to ensure that opening the gate afterwards doesn't somehow crash.
+    }
 }
