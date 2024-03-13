@@ -61,62 +61,60 @@ final class GateTests: XCTestCase {
     func doCancellationTest(concurrency: Int, detachedTasks: Bool) throws {
         let gate = Gate(initiallyOpen: false)
 
-        do {
-            let waitExpectation = XCTestExpectation(description: "Tasks must wait when the gate is closed.")
-            waitExpectation.isInverted = true
+        let waitExpectation = XCTestExpectation(description: "Tasks must wait when the gate is closed.")
+        waitExpectation.isInverted = true
 
-            let passedThroughExpectation = XCTestExpectation(description: "Tasks must resume when the gate is opened.")
-            passedThroughExpectation.assertForOverFulfill = true
-            passedThroughExpectation.expectedFulfillmentCount = 1 < concurrency ? concurrency / 2 : 1
-            passedThroughExpectation.isInverted = 1 >= concurrency
+        let passedThroughExpectation = XCTestExpectation(description: "Tasks must resume when the gate is opened.")
+        passedThroughExpectation.assertForOverFulfill = true
+        passedThroughExpectation.expectedFulfillmentCount = 1 < concurrency ? concurrency / 2 : 1
+        passedThroughExpectation.isInverted = 1 >= concurrency
 
-            let cancelledExpectation = XCTestExpectation(description: "Tasks should stop waiting on the gate immediately if they are cancelled.")
-            cancelledExpectation.assertForOverFulfill = true
-            cancelledExpectation.expectedFulfillmentCount = (concurrency + 1) / 2
+        let cancelledExpectation = XCTestExpectation(description: "Tasks should stop waiting on the gate immediately if they are cancelled.")
+        cancelledExpectation.assertForOverFulfill = true
+        cancelledExpectation.expectedFulfillmentCount = (concurrency + 1) / 2
 
-            let operation: @Sendable () async throws -> Void = {
+        let operation: @Sendable () async throws -> Void = {
+            do {
                 do {
-                    do {
-                        try await gate.enter()
-                    } catch is CancellationError {
-                        cancelledExpectation.fulfill()
-                        return
-                    }
-
-                    passedThroughExpectation.fulfill()
-                } catch {
-                    waitExpectation.fulfill()
-                }
-            }
-
-            var tasksToCancel = [Task<Void, any Error>]()
-
-            for i in 0..<concurrency {
-                let task: Task<Void, any Error>
-
-                if detachedTasks {
-                    task = Task.detached(operation: operation)
-                } else {
-                    task = Task(operation: operation)
+                    try await gate.enter()
+                } catch is CancellationError {
+                    cancelledExpectation.fulfill()
+                    return
                 }
 
-                if i % 2 == 0 {
-                    tasksToCancel.append(task)
-                }
+                passedThroughExpectation.fulfill()
+            } catch {
+                waitExpectation.fulfill()
             }
-
-            wait(for: [waitExpectation], timeout: 2.0)
-
-            for task in tasksToCancel {
-                task.cancel()
-            }
-
-            wait(for: [cancelledExpectation], timeout: 1.0)
-
-            gate.open()
-
-            wait(for: [passedThroughExpectation], timeout: 1.0)
         }
+
+        var tasksToCancel = [Task<Void, any Error>]()
+
+        for i in 0..<concurrency {
+            let task: Task<Void, any Error>
+
+            if detachedTasks {
+                task = Task.detached(operation: operation)
+            } else {
+                task = Task(operation: operation)
+            }
+
+            if i % 2 == 0 {
+                tasksToCancel.append(task)
+            }
+        }
+
+        wait(for: [waitExpectation], timeout: 2.0)
+
+        for task in tasksToCancel {
+            task.cancel()
+        }
+
+        wait(for: [cancelledExpectation], timeout: 1.0)
+
+        gate.open()
+
+        wait(for: [passedThroughExpectation], timeout: 1.0)
     }
 
     func testGateWithinSingleIsolationDomain() throws {
