@@ -45,6 +45,8 @@ struct Example: View {
 }
 ```
 
+Note that `enter` will always throw if the task is cancelled, so you don't need to manually check for cancellation (e.g. `Task.checkCancellation` / `Task.isCancelled`) if you are using `Gate` entry like in the above example.
+
 ## Thanks to…
 
 This was inspired by (and based in part on) [Gwendal Roué](https://github.com/groue)'s [`Semaphore`](https://github.com/groue/Semaphore) package.
