@@ -36,7 +36,7 @@ struct Example: View {
     var body: some View {
         Image(nsImage: self.frames[self.currentFrameIndex])
             .task {
-                while !Task.isCancelled && let _ = try? await self.animationGate.enter() {
+                while let _ = try? await self.animationGate.enter() {
                     self.currentFrameIndex = (self.currentFrameIndex + 1) % self.frames.count
                     try? await Task.sleep(for: .seconds(1) / 60)
                 }
