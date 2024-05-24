@@ -19,6 +19,7 @@ import Foundation // For NSRecursiveLock.  TODO: remove this dependency on Found
 /// Note that it will always make forward progress - it is safe to use with Swift Concurrency.
 public final class Gate: @unchecked Sendable {
     /// - Parameter initiallyOpen: Whether the gate is initially open (tasks may enter through the gate freely) or closed (tasks must wait to enter, until the gate is opened).
+    @inlinable
     public init(initiallyOpen: Bool = true) {
         self.isOpen = initiallyOpen
     }
@@ -49,6 +50,7 @@ public final class Gate: @unchecked Sendable {
     /// Note that any tasks which have _already_ entered through the gate will not be affected (unless they subsequently try to enter through the gate again).
     ///
     /// This has no effect if the gate is already closed.
+    @inlinable
     public func close() {
         self.lock.lock()
         self.isOpen = false
@@ -123,9 +125,13 @@ public final class Gate: @unchecked Sendable {
         }
     }
 
-    private var isOpen: Bool
+    @usableFromInline
+    internal var isOpen: Bool
+
     private var suspensions = [Suspension]()
-    private let lock = NSRecursiveLock() // Protects all state (i.e. the above two variables).
+
+    @usableFromInline
+    internal let lock = NSRecursiveLock() // Protects all state (i.e. the above two variables).
 
     private func lockWithoutTheCompilerBitchingAtUs() {
         self.lock.lock()
